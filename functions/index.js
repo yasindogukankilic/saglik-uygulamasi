@@ -21,7 +21,7 @@ const bucket = admin.storage().bucket();     // default Storage bucket
 /* ──────────────────────────────────────────────────────────────── */
 exports.generateSessionQR = onDocumentCreated('sessions/{sessionId}', async (event) => {
   const sessionId = event.params.sessionId;
-  const inviteLink = `https://localhost:3001/join/${sessionId}`;
+  const inviteLink = `https://saglik-uygulamasi.vercel.app/join/${sessionId}`;
 
   try {
     /* QR PNG’si oluştur */
