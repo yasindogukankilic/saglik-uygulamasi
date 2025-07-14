@@ -72,7 +72,7 @@ export default function LoginPage({ onLogin }) {
           <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center mx-auto mb-4 shadow-lg">
             <Activity className="w-8 h-8 text-[#0079a9]" />
           </div>
-          <h1 className="text-3xl font-bold text-white mb-2">HealthAdmin</h1>
+          <h1 className="text-3xl font-bold text-white mb-2">Edanur</h1>
           <p className="text-blue-100">Sağlık Sınav Yönetim Sistemi</p>
         </div>
 
