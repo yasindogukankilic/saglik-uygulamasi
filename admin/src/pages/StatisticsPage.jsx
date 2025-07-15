@@ -2,7 +2,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import {
   BarChart3, Users, Eye, Activity,
-  Download, RefreshCw, Plus, Expand, Trash2
+  Download, RefreshCw, Plus, Expand, Trash2, Menu
 } from 'lucide-react';
 
 import PageHeader from '../components/ui/PageHeader';
@@ -30,6 +30,18 @@ const SessionsPage = () => {
   const [isDetailOpen,   setIsDetailOpen]   = useState(false);
   const [isCreateOpen,   setIsCreateOpen]   = useState(false);
   const [search,         setSearch]         = useState('');
+  const [isMobile,       setIsMobile]       = useState(false);
+
+  /* ---------- responsive check ---------- */
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+    
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
 
   /* ---------- real-time Firestore streams ---------- */
   useEffect(() => {
@@ -62,7 +74,6 @@ const SessionsPage = () => {
   }, [sessions]);
 
   const handleCreateDone = (createdSession) => {
-    // Modal zaten QR + link gösteriyor; ayrıca detay modalı da açalım:
     setSelected(createdSession);
     setIsDetailOpen(true);
   };
@@ -85,9 +96,62 @@ const SessionsPage = () => {
       (s.date || '').includes(search)
   );
 
+  /* ---------------- mobile card component ---------------- */
+  const MobileSessionCard = ({ session }) => (
+    <Card className="mb-4" hover>
+      <Card.Content className="p-4">
+        <div className="flex justify-between items-start mb-3">
+          <div className="flex-1">
+            <h3 className="font-semibold text-gray-800 text-sm mb-1">
+              {session.sessionName}
+            </h3>
+            <p className="text-xs text-gray-500">
+              {new Date(session.date).toLocaleDateString('tr-TR')}
+            </p>
+          </div>
+          <div className="flex space-x-1">
+            <button title="Detay"
+                    onClick={() => handleExpand(session)}
+                    className="text-blue-600 hover:text-blue-900 p-2
+                               hover:bg-blue-50 rounded-lg transition-colors">
+              <Expand className="w-4 h-4" />
+            </button>
+            <button title="Excel İndir"
+                    onClick={() => exportSessionExcel(session)}
+                    className="text-emerald-600 hover:text-emerald-900 p-2
+                               hover:bg-emerald-50 rounded-lg transition-colors">
+              <Download className="w-4 h-4" />
+            </button>
+            <button title="Sil"
+                    onClick={() => handleDelete(session.id)}
+                    className="text-red-600 hover:text-red-900 p-2
+                               hover:bg-red-50 rounded-lg transition-colors">
+              <Trash2 className="w-4 h-4" />
+            </button>
+          </div>
+        </div>
+        
+        <div className="grid grid-cols-2 gap-4 text-sm">
+          <div className="flex items-center space-x-2">
+            <Users className="w-4 h-4 text-gray-400" />
+            <span className="text-gray-600">
+              {session.studentCount} öğrenci
+            </span>
+          </div>
+          <div className="flex items-center space-x-2">
+            <Eye className="w-4 h-4 text-gray-400" />
+            <span className="text-gray-600">
+              %{session.accuracyRate} doğruluk
+            </span>
+          </div>
+        </div>
+      </Card.Content>
+    </Card>
+  );
+
   /* ---------------- ui ---------------- */
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 md:space-y-6 px-4 md:px-0">
       {/* HEADER */}
       <PageHeader
         title="Seans İstatistikleri"
@@ -95,18 +159,20 @@ const SessionsPage = () => {
         icon={BarChart3}
         actions={[
           <Button key="new" variant="primary" icon={Plus}
+                  size={isMobile ? "sm" : "md"}
                   onClick={() => setIsCreateOpen(true)}>
-            Yeni Seans Oluştur
+            {isMobile ? "Yeni" : "Yeni Seans Oluştur"}
           </Button>,
           <Button key="refresh" variant="secondary" icon={RefreshCw}
+                  size={isMobile ? "sm" : "md"}
                   onClick={() => window.location.reload()}>
-            Yenile
+            {isMobile ? "" : "Yenile"}
           </Button>
         ]}
       />
 
       {/* METRİKLER */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-6">
         <StatCard
           title="Toplam Seans"
           value={metrics.totalSessions.toString()}
@@ -140,6 +206,15 @@ const SessionsPage = () => {
           iconBgColor={iconBgs.purple}
           iconColor={iconColors.purple}
         />
+        <StatCard
+          title="Son Aktivite"
+          value={metrics.latest ? "Aktif" : "Yok"}
+          change={metrics.latest ? "Şimdi" : "—"}
+          changeType="neutral"
+          icon={Activity}
+          iconBgColor={iconBgs.orange}
+          iconColor={iconColors.orange}
+        />
       </div>
 
       {/* ARAMA */}
@@ -150,67 +225,109 @@ const SessionsPage = () => {
         showFilterButton={false}
       />
 
-      {/* TABLO */}
-      <Card>
-        <div className="px-6 py-4 border-b border-gray-200">
-          <h3 className="text-lg font-semibold text-gray-800">Seans Listesi</h3>
-        </div>
-
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead className="bg-gray-50 border-b border-gray-200">
-              <tr>
-                {['Seans Adı', 'Tarih', 'Öğrenci', 'Doğruluk', '']
-                  .map(h => (
-                    <th key={h} className="px-6 py-3 text-left text-xs font-medium
-                                           text-gray-500 uppercase tracking-wider">
-                      {h}
-                    </th>
-                  ))}
-              </tr>
-            </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
-              {list.map(s => (
-                <tr key={s.id} className="hover:bg-gray-50">
-                  <td className="px-6 py-4">{s.sessionName}</td>
-                  <td className="px-6 py-4">
-                    {new Date(s.date).toLocaleDateString('tr-TR')}
-                  </td>
-                  <td className="px-6 py-4">{s.studentCount}</td>
-                  <td className="px-6 py-4">%{s.accuracyRate}</td>
-                  <td className="px-6 py-4">
-                    <div className="flex space-x-2">
-                      <button title="Detay"
-                              onClick={() => handleExpand(s)}
-                              className="text-blue-600 hover:text-blue-900 p-1
-                                         hover:bg-blue-50 rounded transition-colors">
-                        <Expand className="w-4 h-4" />
-                      </button>
-                      <button title="Excel İndir"
-                              onClick={() => exportSessionExcel(s)}
-                              className="text-emerald-600 hover:text-emerald-900 p-1
-                                         hover:bg-emerald-50 rounded transition-colors">
-                        <Download className="w-4 h-4" />
-                      </button>
-                      <button title="Sil"
-                              onClick={() => handleDelete(s.id)}
-                              className="text-red-600 hover:text-red-900 p-1
-                                         hover:bg-red-50 rounded transition-colors">
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-              {list.length === 0 && (
-                <tr><td colSpan={5} className="py-10 text-center text-gray-500">
+      {/* MOBILE CARDS / DESKTOP TABLE */}
+      {isMobile ? (
+        /* MOBILE CARDS */
+        <div className="space-y-3">
+          <div className="flex items-center justify-between px-1">
+            <h3 className="text-lg font-semibold text-gray-800">
+              Seans Listesi ({list.length})
+            </h3>
+          </div>
+          
+          {list.length === 0 ? (
+            <Card>
+              <Card.Content className="py-12 text-center">
+                <BarChart3 className="w-12 h-12 text-gray-300 mx-auto mb-4" />
+                <p className="text-gray-500">
                   {search ? 'Arama kriterine uygun seans yok' : 'Henüz seans yok'}
-                </td></tr>
-              )}
-            </tbody>
-          </table>
+                </p>
+              </Card.Content>
+            </Card>
+          ) : (
+            <div className="space-y-3">
+              {list.map(session => (
+                <MobileSessionCard key={session.id} session={session} />
+              ))}
+            </div>
+          )}
         </div>
-      </Card>
+      ) : (
+        /* DESKTOP TABLE */
+        <Card>
+          <div className="px-6 py-4 border-b border-gray-200">
+            <h3 className="text-lg font-semibold text-gray-800">Seans Listesi</h3>
+          </div>
+
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead className="bg-gray-50 border-b border-gray-200">
+                <tr>
+                  {['Seans Adı', 'Tarih', 'Öğrenci', 'Doğruluk', '']
+                    .map(h => (
+                      <th key={h} className="px-6 py-3 text-left text-xs font-medium
+                                             text-gray-500 uppercase tracking-wider">
+                        {h}
+                      </th>
+                    ))}
+                </tr>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">
+                {list.map(s => (
+                  <tr key={s.id} className="hover:bg-gray-50">
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="text-sm font-medium text-gray-900">
+                        {s.sessionName}
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      {new Date(s.date).toLocaleDateString('tr-TR')}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      {s.studentCount}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      %{s.accuracyRate}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      <div className="flex space-x-2">
+                        <button title="Detay"
+                                onClick={() => handleExpand(s)}
+                                className="text-blue-600 hover:text-blue-900 p-1
+                                           hover:bg-blue-50 rounded transition-colors">
+                          <Expand className="w-4 h-4" />
+                        </button>
+                        <button title="Excel İndir"
+                                onClick={() => exportSessionExcel(s)}
+                                className="text-emerald-600 hover:text-emerald-900 p-1
+                                           hover:bg-emerald-50 rounded transition-colors">
+                          <Download className="w-4 h-4" />
+                        </button>
+                        <button title="Sil"
+                                onClick={() => handleDelete(s.id)}
+                                className="text-red-600 hover:text-red-900 p-1
+                                           hover:bg-red-50 rounded transition-colors">
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+                {list.length === 0 && (
+                  <tr>
+                    <td colSpan={5} className="py-12 text-center">
+                      <BarChart3 className="w-12 h-12 text-gray-300 mx-auto mb-4" />
+                      <p className="text-gray-500">
+                        {search ? 'Arama kriterine uygun seans yok' : 'Henüz seans yok'}
+                      </p>
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        </Card>
+      )}
 
       {/* MODALLAR */}
       <CreateSessionModal

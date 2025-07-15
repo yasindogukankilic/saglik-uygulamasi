@@ -2,10 +2,10 @@ import React from 'react';
 
 const Card = ({ children, className = '', hover = false, ...props }) => {
   const baseClasses = "bg-white rounded-xl shadow-sm border border-gray-200";
-  const hoverClasses = hover ? "hover:shadow-md transition-shadow" : "";
+  const hoverClasses = hover ? "hover:shadow-md transition-shadow duration-200" : "";
   
   return (
-    <div 
+    <div
       className={`${baseClasses} ${hoverClasses} ${className}`}
       {...props}
     >
@@ -16,8 +16,8 @@ const Card = ({ children, className = '', hover = false, ...props }) => {
 
 const CardHeader = ({ children, className = '', ...props }) => {
   return (
-    <div 
-      className={`p-6 ${className}`}
+    <div
+      className={`p-4 sm:p-6 ${className}`}
       {...props}
     >
       {children}
@@ -27,8 +27,8 @@ const CardHeader = ({ children, className = '', ...props }) => {
 
 const CardContent = ({ children, className = '', ...props }) => {
   return (
-    <div 
-      className={`p-6 ${className}`}
+    <div
+      className={`p-4 sm:p-6 ${className}`}
       {...props}
     >
       {children}
@@ -38,8 +38,8 @@ const CardContent = ({ children, className = '', ...props }) => {
 
 const CardTitle = ({ children, className = '', ...props }) => {
   return (
-    <h3 
-      className={`text-lg font-semibold text-gray-800 ${className}`}
+    <h3
+      className={`text-base sm:text-lg font-semibold text-gray-800 ${className}`}
       {...props}
     >
       {children}
