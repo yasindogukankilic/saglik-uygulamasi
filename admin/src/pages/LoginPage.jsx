@@ -191,6 +191,23 @@ export default function LoginPage({ onLogin }) {
               )}
             </Button>
           </form>
+
+          {/* Demo Credentials - Sadece development için */}
+          {process.env.NODE_ENV === 'development' && (
+            <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+              <p className="text-xs text-blue-700 mb-2 font-medium">Demo Hesap:</p>
+              <div className="text-xs text-blue-600 space-y-1">
+                <div className="flex justify-between">
+                  <span>E-posta:</span>
+                  <code className="bg-blue-100 px-1 rounded">admin@test.com</code>
+                </div>
+                <div className="flex justify-between">
+                  <span>Şifre:</span>
+                  <code className="bg-blue-100 px-1 rounded">123456</code>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Footer */}
