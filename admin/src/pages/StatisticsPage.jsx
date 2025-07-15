@@ -2,7 +2,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import {
   BarChart3, Users, Eye, Activity,
-  Download, RefreshCw, Plus, Expand, Trash2, Menu
+  Download, RefreshCw, Plus, Expand, Trash2, Calendar, Target
 } from 'lucide-react';
 
 import PageHeader from '../components/ui/PageHeader';
@@ -10,6 +10,7 @@ import StatCard   from '../components/ui/StatCard';
 import Card       from '../components/ui/Card';
 import Button     from '../components/ui/Button';
 import SearchBar  from '../components/ui/SearchBar';
+import Table      from '../components/ui/Table';
 import SessionDetailModal from '../components/ui/SessionDetailModal';
 import CreateSessionModal  from '../components/ui/CreateSessionModal';
 import { iconBgs, iconColors } from '../utils/styles';
@@ -68,9 +69,11 @@ const SessionsPage = () => {
     const avgAccuracy   = totalSessions
         ? Math.round(sessions.reduce((sum, s) => sum + (s.accuracyRate || 0), 0) / totalSessions)
         : 0;
-    const latest        = sessions[0] || null;
+    const avgStudents   = totalSessions 
+        ? Math.round(totalStudents / totalSessions)
+        : 0;
 
-    return { totalSessions, totalStudents, avgAccuracy, latest };
+    return { totalSessions, totalStudents, avgAccuracy, avgStudents };
   }, [sessions]);
 
   const handleCreateDone = (createdSession) => {
@@ -96,58 +99,29 @@ const SessionsPage = () => {
       (s.date || '').includes(search)
   );
 
-  /* ---------------- mobile card component ---------------- */
-  const MobileSessionCard = ({ session }) => (
-    <Card className="mb-4" hover>
-      <Card.Content className="p-4">
-        <div className="flex justify-between items-start mb-3">
-          <div className="flex-1">
-            <h3 className="font-semibold text-gray-800 text-sm mb-1">
-              {session.sessionName}
-            </h3>
-            <p className="text-xs text-gray-500">
-              {new Date(session.date).toLocaleDateString('tr-TR')}
-            </p>
-          </div>
-          <div className="flex space-x-1">
-            <button title="Detay"
-                    onClick={() => handleExpand(session)}
-                    className="text-blue-600 hover:text-blue-900 p-2
-                               hover:bg-blue-50 rounded-lg transition-colors">
-              <Expand className="w-4 h-4" />
-            </button>
-            <button title="Excel İndir"
-                    onClick={() => exportSessionExcel(session)}
-                    className="text-emerald-600 hover:text-emerald-900 p-2
-                               hover:bg-emerald-50 rounded-lg transition-colors">
-              <Download className="w-4 h-4" />
-            </button>
-            <button title="Sil"
-                    onClick={() => handleDelete(session.id)}
-                    className="text-red-600 hover:text-red-900 p-2
-                               hover:bg-red-50 rounded-lg transition-colors">
-              <Trash2 className="w-4 h-4" />
-            </button>
-          </div>
-        </div>
-        
-        <div className="grid grid-cols-2 gap-4 text-sm">
-          <div className="flex items-center space-x-2">
-            <Users className="w-4 h-4 text-gray-400" />
-            <span className="text-gray-600">
-              {session.studentCount} öğrenci
-            </span>
-          </div>
-          <div className="flex items-center space-x-2">
-            <Eye className="w-4 h-4 text-gray-400" />
-            <span className="text-gray-600">
-              %{session.accuracyRate} doğruluk
-            </span>
-          </div>
-        </div>
-      </Card.Content>
-    </Card>
-  );
+  /* ---------------- tablo kolonları ---------------- */
+  const columns = [
+    {
+      key: 'sessionName',
+      title: 'Seans Adı'
+    },
+    {
+      key: 'date',
+      title: 'Tarih',
+      render: (value) => {
+        return new Date(value).toLocaleDateString('tr-TR');
+      }
+    },
+    {
+      key: 'studentCount',
+      title: 'Öğrenci Sayısı'
+    },
+    {
+      key: 'accuracyRate',
+      title: 'Doğruluk Oranı',
+      render: (value) => `%${value || 0}`
+    }
+  ];
 
   /* ---------------- ui ---------------- */
   return (
@@ -176,7 +150,7 @@ const SessionsPage = () => {
         <StatCard
           title="Toplam Seans"
           value={metrics.totalSessions.toString()}
-          change={metrics.latest ? `Son: ${metrics.latest.sessionName}` : '—'}
+          change={`${metrics.totalSessions} aktif`}
           changeType="neutral"
           icon={BarChart3}
           iconBgColor={iconBgs.blue}
@@ -202,14 +176,14 @@ const SessionsPage = () => {
               ? 'neutral'
               : 'negative'
           }
-          icon={Eye}
+          icon={Target}
           iconBgColor={iconBgs.purple}
           iconColor={iconColors.purple}
         />
         <StatCard
-          title="Son Aktivite"
-          value={metrics.latest ? "Aktif" : "Yok"}
-          change={metrics.latest ? "Şimdi" : "—"}
+          title="Ortalama Katılım"
+          value={metrics.avgStudents.toString()}
+          change="Seans başına"
           changeType="neutral"
           icon={Activity}
           iconBgColor={iconBgs.orange}
@@ -225,109 +199,31 @@ const SessionsPage = () => {
         showFilterButton={false}
       />
 
-      {/* MOBILE CARDS / DESKTOP TABLE */}
-      {isMobile ? (
-        /* MOBILE CARDS */
-        <div className="space-y-3">
-          <div className="flex items-center justify-between px-1">
-            <h3 className="text-lg font-semibold text-gray-800">
-              Seans Listesi ({list.length})
-            </h3>
-          </div>
-          
-          {list.length === 0 ? (
-            <Card>
-              <Card.Content className="py-12 text-center">
-                <BarChart3 className="w-12 h-12 text-gray-300 mx-auto mb-4" />
-                <p className="text-gray-500">
-                  {search ? 'Arama kriterine uygun seans yok' : 'Henüz seans yok'}
-                </p>
-              </Card.Content>
-            </Card>
-          ) : (
-            <div className="space-y-3">
-              {list.map(session => (
-                <MobileSessionCard key={session.id} session={session} />
-              ))}
-            </div>
-          )}
-        </div>
-      ) : (
-        /* DESKTOP TABLE */
-        <Card>
-          <div className="px-6 py-4 border-b border-gray-200">
-            <h3 className="text-lg font-semibold text-gray-800">Seans Listesi</h3>
-          </div>
-
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead className="bg-gray-50 border-b border-gray-200">
-                <tr>
-                  {['Seans Adı', 'Tarih', 'Öğrenci', 'Doğruluk', '']
-                    .map(h => (
-                      <th key={h} className="px-6 py-3 text-left text-xs font-medium
-                                             text-gray-500 uppercase tracking-wider">
-                        {h}
-                      </th>
-                    ))}
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {list.map(s => (
-                  <tr key={s.id} className="hover:bg-gray-50">
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm font-medium text-gray-900">
-                        {s.sessionName}
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {new Date(s.date).toLocaleDateString('tr-TR')}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {s.studentCount}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      %{s.accuracyRate}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      <div className="flex space-x-2">
-                        <button title="Detay"
-                                onClick={() => handleExpand(s)}
-                                className="text-blue-600 hover:text-blue-900 p-1
-                                           hover:bg-blue-50 rounded transition-colors">
-                          <Expand className="w-4 h-4" />
-                        </button>
-                        <button title="Excel İndir"
-                                onClick={() => exportSessionExcel(s)}
-                                className="text-emerald-600 hover:text-emerald-900 p-1
-                                           hover:bg-emerald-50 rounded transition-colors">
-                          <Download className="w-4 h-4" />
-                        </button>
-                        <button title="Sil"
-                                onClick={() => handleDelete(s.id)}
-                                className="text-red-600 hover:text-red-900 p-1
-                                           hover:bg-red-50 rounded transition-colors">
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-                {list.length === 0 && (
-                  <tr>
-                    <td colSpan={5} className="py-12 text-center">
-                      <BarChart3 className="w-12 h-12 text-gray-300 mx-auto mb-4" />
-                      <p className="text-gray-500">
-                        {search ? 'Arama kriterine uygun seans yok' : 'Henüz seans yok'}
-                      </p>
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
-        </Card>
-      )}
+      {/* TABLO */}
+      <Table
+        columns={columns}
+        data={list}
+        rowActions={(session) => [
+          { 
+            label: 'Detay', 
+            icon: Expand, 
+            onClick: () => handleExpand(session) 
+          },
+          { 
+            label: 'Excel İndir', 
+            icon: Download, 
+            onClick: () => exportSessionExcel(session) 
+          },
+          { 
+            label: 'Sil', 
+            icon: Trash2, 
+            danger: true, 
+            onClick: () => handleDelete(session.id) 
+          }
+        ]}
+        emptyMessage={search ? 'Arama kriterine uygun seans yok' : 'Henüz seans yok'}
+        emptyIcon={BarChart3}
+      />
 
       {/* MODALLAR */}
       <CreateSessionModal
